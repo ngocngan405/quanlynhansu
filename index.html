@@ -1,0 +1,1283 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRẠM CHẤM CÔNG — Quản lý nhân viên</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<style>
+  :root{
+    --bg:#f4f5fb;
+    --bg-2:#eceefb;
+    --surface:#ffffff;
+    --surface-2:#f8f9fe;
+    --border:#e7e8f3;
+    --violet:#6d5bf6;
+    --violet-2:#8b7bff;
+    --teal:#12b8a6;
+    --amber:#f5a524;
+    --red:#f0473f;
+    --green:#1fb178;
+    --text:#181a2a;
+    --muted:#8a8ca6;
+    --shadow: 0 1px 2px rgba(24,26,42,.04), 0 8px 24px -12px rgba(24,26,42,.10);
+    --shadow-lg: 0 4px 10px rgba(24,26,42,.05), 0 20px 44px -16px rgba(109,91,246,.22);
+    --grad: linear-gradient(135deg,#6d5bf6 0%,#8b7bff 55%,#12b8a6 130%);
+    --nav-h:76px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 480px at 100% -10%, rgba(109,91,246,.10), transparent 60%),
+      radial-gradient(900px 420px at -10% 10%, rgba(18,184,166,.09), transparent 55%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  h1,h2,.display{font-family:'Plus Jakarta Sans',sans-serif;}
+
+  /* ===== Login screen ===== */
+  .login-screen{
+    min-height:100vh;display:flex;align-items:center;justify-content:center;
+    padding:24px;
+  }
+  .login-card{
+    width:100%;max-width:400px;background:var(--surface);
+    border:1px solid var(--border);border-radius:22px;
+    padding:30px 28px 26px;box-shadow:var(--shadow-lg);
+  }
+  .login-brand{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;margin-bottom:22px;}
+  .login-brand .mark{
+    width:52px;height:52px;border-radius:16px;background:var(--grad);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    box-shadow:0 10px 24px -8px rgba(109,91,246,.55);
+  }
+  .login-brand .mark::before{
+    content:"";position:absolute;top:50%;left:50%;
+    width:2.5px;height:13px;background:#fff;border-radius:2px;
+    transform-origin:bottom center;transform:translate(-50%,-100%) rotate(35deg);
+  }
+  .login-brand .mark::after{
+    content:"";position:absolute;top:50%;left:50%;
+    width:2.5px;height:9px;background:rgba(255,255,255,.85);border-radius:2px;
+    transform-origin:bottom center;transform:translate(-50%,-100%) rotate(160deg);
+  }
+  .login-brand h1{font-size:19px;margin:0;font-weight:800;letter-spacing:-.01em;}
+  .login-brand .sub{font-size:12.5px;color:var(--muted);font-weight:500;}
+
+  .login-tabs{
+    display:flex;gap:4px;padding:5px;margin-bottom:20px;
+    background:var(--surface-2);border:1px solid var(--border);border-radius:13px;
+  }
+  .login-tabs button{
+    flex:1;background:none;border:none;color:var(--muted);
+    font-family:'Plus Jakarta Sans',sans-serif;font-size:13.5px;font-weight:700;
+    padding:10px 12px;border-radius:9px;cursor:pointer;transition:.18s;
+  }
+  .login-tabs button.active{color:#fff;background:var(--grad);box-shadow:0 6px 14px -6px rgba(109,91,246,.5);}
+
+  .login-form{display:none;}
+  .login-form.active{display:block;animation:fade .2s ease;}
+  .login-hint{font-size:11.5px;color:var(--muted);margin-top:14px;line-height:1.5;text-align:center;}
+  .login-hint b{color:var(--text);}
+  .login-error{
+    margin-top:14px;background:#fdeceb;color:var(--red);border:1px solid #fbd7d5;
+    padding:10px 13px;border-radius:11px;font-size:12.5px;font-weight:600;text-align:center;
+  }
+
+  /* ===== App header ===== */
+  header.site{
+    padding:20px 28px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:16px;
+    max-width:1180px;margin:0 auto;
+  }
+  .brand{display:flex;align-items:center;gap:13px;}
+  .brand .mark{
+    width:42px;height:42px;border-radius:13px;
+    background:var(--grad);
+    display:flex;align-items:center;justify-content:center;
+    position:relative;flex-shrink:0;
+    box-shadow:0 8px 20px -6px rgba(109,91,246,.55);
+  }
+  .brand .mark::before{
+    content:"";position:absolute;top:50%;left:50%;
+    width:2px;height:10px;background:#fff;border-radius:2px;
+    transform-origin:bottom center;
+    transform:translate(-50%,-100%) rotate(35deg);
+  }
+  .brand .mark::after{
+    content:"";position:absolute;top:50%;left:50%;
+    width:2px;height:7px;background:rgba(255,255,255,.85);border-radius:2px;
+    transform-origin:bottom center;
+    transform:translate(-50%,-100%) rotate(160deg);
+  }
+  .brand h1{
+    font-size:19px;margin:0;font-weight:800;letter-spacing:-.01em;color:var(--text);
+  }
+  .brand .sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500;}
+
+  .header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px;}
+  .user-chip{
+    display:flex;align-items:center;gap:8px;background:var(--surface);
+    border:1px solid var(--border);border-radius:30px;padding:5px 6px 5px 14px;
+    box-shadow:var(--shadow);
+  }
+  .user-chip .u-name{font-size:12.5px;font-weight:700;color:var(--text);}
+  .user-chip .u-role{
+    font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;
+    text-transform:uppercase;letter-spacing:.03em;
+  }
+  .user-chip .u-role.manager{background:rgba(109,91,246,.12);color:var(--violet);}
+  .user-chip .u-role.employee{background:rgba(18,184,166,.12);color:var(--teal);}
+  .logout-btn{
+    width:28px;height:28px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--surface-2);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;
+    transition:.15s;flex-shrink:0;
+  }
+  .logout-btn:hover{background:#fdeceb;color:var(--red);}
+  .logout-btn svg{width:14px;height:14px;}
+
+  .live-clock{text-align:right;}
+  .live-clock .digits{
+    font-family:'JetBrains Mono',monospace;
+    font-size:28px;font-weight:700;letter-spacing:-.01em;
+    color:var(--text);line-height:1;
+  }
+  .live-clock .digits .sec{color:var(--violet);font-size:17px;}
+  .live-clock .date{font-size:11px;color:var(--muted);margin-top:4px;font-weight:500;}
+
+  main{padding:22px 28px calc(var(--nav-h) + 30px);max-width:1180px;margin:0 auto;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  h2.section-title{
+    font-size:13px;letter-spacing:.02em;
+    color:var(--text);margin:0 0 16px;font-weight:700;
+    font-family:'Plus Jakarta Sans',sans-serif;
+  }
+
+  /* ===== Cards / grid ===== */
+  .grid{display:grid;gap:18px;}
+  .grid.cols-2{grid-template-columns:1.1fr 1.4fr;}
+  @media(max-width:820px){.grid.cols-2{grid-template-columns:1fr;}}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:18px;
+    padding:22px;
+    box-shadow:var(--shadow);
+  }
+
+  label{display:block;font-size:12px;color:var(--muted);font-weight:600;margin:14px 0 6px;}
+  label:first-child{margin-top:0;}
+  input[type=text],input[type=password],select{
+    width:100%;background:var(--surface-2);border:1.5px solid var(--border);
+    color:var(--text);padding:11px 13px;border-radius:11px;
+    font-family:'Inter',sans-serif;font-size:14px;
+    transition:.15s;
+  }
+  input[type=text]:focus,input[type=password]:focus,select:focus{outline:none;border-color:var(--violet);background:#fff;box-shadow:0 0 0 4px rgba(109,91,246,.12);}
+  select:disabled{opacity:.7;cursor:not-allowed;}
+
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:6px;
+    background:var(--grad);color:#fff;border:none;
+    font-family:'Plus Jakarta Sans',sans-serif;font-weight:700;
+    font-size:13.5px;
+    padding:12px 20px;border-radius:12px;cursor:pointer;
+    box-shadow:0 8px 18px -8px rgba(109,91,246,.55);
+    transition:.15s;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 10px 22px -8px rgba(109,91,246,.6);}
+  .btn.ghost{background:var(--surface);border:1.5px solid var(--border);color:var(--text);box-shadow:none;}
+  .btn.ghost:hover{border-color:var(--violet-2);color:var(--violet);transform:none;box-shadow:none;}
+  .btn.danger{background:none;border:1.5px solid #fbd7d5;color:var(--red);padding:6px 12px;font-size:11.5px;box-shadow:none;border-radius:9px;}
+  .btn.danger:hover{background:#fdeceb;transform:none;box-shadow:none;}
+  .btn.small{padding:8px 14px;font-size:11.5px;}
+  .btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  /* ===== Employee list ===== */
+  .emp-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 6px;border-bottom:1px solid var(--border);
+    gap:10px;border-radius:10px;
+  }
+  .emp-row:last-child{border-bottom:none;}
+  .emp-info{display:flex;align-items:center;gap:12px;min-width:0;}
+  .avatar{
+    width:38px;height:38px;border-radius:12px;
+    background:var(--grad);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;font-weight:700;flex-shrink:0;
+    font-family:'Plus Jakarta Sans',sans-serif;
+  }
+  .emp-info .txt{min-width:0;}
+  .emp-info .name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .emp-info .role{font-size:12px;color:var(--muted);margin-top:1px;}
+  .emp-info .pin-tag{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;color:var(--muted);margin-top:2px;}
+  .emp-actions{display:flex;gap:6px;flex-shrink:0;}
+
+  .empty{
+    color:var(--muted);font-size:13px;text-align:center;padding:30px 14px;
+    border:1.5px dashed var(--border);border-radius:14px;background:var(--surface-2);
+  }
+
+  /* ===== Punch station ===== */
+  .punch-station{text-align:center;padding:34px 22px;position:relative;overflow:hidden;}
+  .punch-station::before{
+    content:"";position:absolute;top:-60%;left:50%;transform:translateX(-50%);
+    width:320px;height:320px;border-radius:50%;
+    background:radial-gradient(circle, rgba(109,91,246,.14), transparent 70%);
+    pointer-events:none;
+  }
+  .punch-station .digits-big{
+    font-family:'JetBrains Mono',monospace;font-size:52px;font-weight:700;
+    color:var(--text);letter-spacing:-.02em;position:relative;
+  }
+  .punch-station .digits-big .sec{color:var(--violet);}
+  .punch-station .date-big{color:var(--muted);font-size:12.5px;font-weight:500;margin-top:4px;position:relative;}
+  .punch-station select{max-width:340px;margin:22px auto 14px;}
+  .self-name-tag{
+    display:inline-flex;align-items:center;gap:8px;margin:22px auto 4px;padding:9px 18px;
+    background:var(--surface-2);border:1.5px solid var(--border);border-radius:30px;
+    font-weight:700;font-size:14px;position:relative;
+  }
+  .punch-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+  .status-pill{
+    display:inline-block;margin-top:16px;padding:6px 14px;border-radius:20px;
+    font-size:12px;font-weight:600;
+  }
+  .status-pill.in{background:#e7f9f1;color:var(--green);}
+  .status-pill.out{background:var(--surface-2);color:var(--muted);}
+
+  /* Attendance ticket */
+  .ticket{
+    background:var(--surface-2);border:1px solid var(--border);color:var(--text);border-radius:14px;
+    padding:14px 16px;position:relative;overflow:hidden;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    margin-bottom:10px;border-left:3px solid var(--violet);
+  }
+  .ticket .t-name{font-weight:700;font-size:13.5px;}
+  .ticket .t-date{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;}
+  .ticket .t-times{font-family:'JetBrains Mono',monospace;font-size:12.5px;text-align:right;white-space:nowrap;color:var(--text);}
+  .ticket .t-times .lbl{color:var(--muted);font-size:9.5px;letter-spacing:.06em;margin-right:4px;font-family:'Inter',sans-serif;font-weight:600;}
+  .ticket .t-hours{
+    font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;
+    color:var(--violet);min-width:64px;text-align:right;
+  }
+
+  /* ===== Ranking ===== */
+  .rank-row{
+    display:grid;grid-template-columns:40px 1fr auto auto;align-items:center;
+    gap:14px;padding:14px 10px;border-bottom:1px solid var(--border);
+    border-radius:12px;
+  }
+  .rank-row:last-child{border-bottom:none;}
+  .rank-num{
+    font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--muted);text-align:center;
+  }
+  .rank-row.top1{background:linear-gradient(90deg, rgba(245,165,36,.08), transparent 60%);}
+  .rank-row.top1 .rank-num{font-size:20px;}
+  .rank-row.top2 .rank-num{font-size:19px;}
+  .rank-row.top3 .rank-num{font-size:19px;}
+  .rank-name{font-size:14px;font-weight:700;}
+  .rank-name .role{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px;}
+  .rank-bar-wrap{width:130px;height:7px;background:var(--surface-2);border-radius:5px;overflow:hidden;}
+  .rank-bar{height:100%;background:var(--grad);border-radius:5px;}
+  .rank-hours{font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--violet);font-weight:700;text-align:right;min-width:74px;}
+  .rank-hours .u{color:var(--muted);font-size:10px;font-weight:500;margin-left:2px;font-family:'Inter',sans-serif;}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .toolbar .hint{font-size:11.5px;color:var(--muted);}
+
+  /* ===== Chat ===== */
+  .list-subhead{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin:16px 0 8px;}
+  .list-subhead:first-child{margin-top:0;}
+  .new-group-form{margin:14px 0 4px;padding:14px;border:1.5px dashed var(--border);border-radius:14px;background:var(--surface-2);}
+  .member-check-list{max-height:150px;overflow-y:auto;border:1.5px solid var(--border);border-radius:11px;padding:6px 10px;margin-top:4px;background:var(--surface);}
+  .member-check-item{display:flex;align-items:center;gap:8px;padding:6px 2px;font-size:13px;font-weight:500;}
+  .member-check-item input{width:auto;accent-color:var(--violet);}
+
+  .group-item{
+    display:flex;align-items:center;gap:11px;padding:9px 8px;border-radius:12px;cursor:pointer;transition:.15s;
+  }
+  .group-item:hover{background:var(--surface-2);}
+  .group-item.active{background:rgba(109,91,246,.09);}
+  .g-avatar{
+    width:36px;height:36px;border-radius:10px;background:var(--grad);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11.5px;
+    flex-shrink:0;font-family:'Plus Jakarta Sans',sans-serif;
+  }
+  .g-info{min-width:0;flex:1;}
+  .g-name{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .g-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+  .lock-ico{width:12px;height:12px;flex-shrink:0;color:var(--amber);}
+
+  .discover-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 8px;border-radius:12px;}
+  .discover-item .g-name{font-size:13px;}
+
+  .chat-card{padding:0 !important;display:flex;flex-direction:column;height:540px;overflow:hidden;}
+  .chat-header{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  .ch-name{font-weight:800;font-size:14.5px;display:flex;align-items:center;gap:6px;}
+  .ch-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .admin-banner{background:#fff7e8;color:#9a6b12;font-size:11.5px;padding:8px 20px;border-bottom:1px solid #f3e2bb;font-weight:600;flex-shrink:0;}
+  .chat-messages{flex:1;overflow-y:auto;padding:18px 20px;display:flex;flex-direction:column;gap:12px;}
+  .chat-empty{flex:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:13px;padding:30px;text-align:center;}
+  .msg-row{display:flex;flex-direction:column;max-width:74%;}
+  .msg-row.mine{align-self:flex-end;align-items:flex-end;}
+  .msg-row.theirs{align-self:flex-start;align-items:flex-start;}
+  .msg-sender{font-size:10.5px;color:var(--muted);font-weight:700;margin-bottom:3px;padding:0 4px;}
+  .msg-bubble{padding:9px 13px;border-radius:16px;font-size:13.5px;line-height:1.45;word-break:break-word;}
+  .msg-row.theirs .msg-bubble{background:var(--surface-2);border:1px solid var(--border);border-bottom-left-radius:5px;}
+  .msg-row.mine .msg-bubble{background:var(--grad);color:#fff;border-bottom-right-radius:5px;}
+  .msg-time{font-size:9.5px;color:var(--muted);margin-top:3px;padding:0 4px;}
+  .chat-input-row{display:flex;gap:8px;padding:14px 16px;border-top:1px solid var(--border);flex-shrink:0;}
+  .chat-input-row input{flex:1;}
+  .chat-input-row button{flex-shrink:0;padding:11px 18px;}
+  @media(max-width:820px){.chat-card{height:460px;}}
+
+  footer.site{
+    text-align:center;color:var(--muted);font-size:11.5px;
+    padding:0 20px calc(var(--nav-h) + 20px);font-weight:500;max-width:1180px;margin:-10px auto 0;
+  }
+
+  /* ===== Bottom navigation ===== */
+  nav.bottom-nav{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    background:rgba(255,255,255,.9);backdrop-filter:blur(14px);
+    border-top:1px solid var(--border);
+    box-shadow:0 -10px 30px -14px rgba(24,26,42,.18);
+    padding:8px 14px calc(8px + env(safe-area-inset-bottom));
+  }
+  .bottom-nav-inner{
+    max-width:520px;margin:0 auto;display:flex;gap:4px;
+  }
+  .bottom-nav-inner button{
+    flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    padding:6px 4px 5px;border-radius:14px;transition:.18s;
+    font-family:'Plus Jakarta Sans',sans-serif;font-size:10.5px;font-weight:700;
+  }
+  .bottom-nav-inner button .ico-wrap{
+    width:40px;height:26px;display:flex;align-items:center;justify-content:center;
+    border-radius:10px;transition:.18s;
+  }
+  .bottom-nav-inner button svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
+  .bottom-nav-inner button.active{color:var(--violet);}
+  .bottom-nav-inner button.active .ico-wrap{background:rgba(109,91,246,.13);}
+  .bottom-nav-inner button:hover{color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN SCREEN ============ -->
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <div class="login-brand">
+      <div class="mark"></div>
+      <h1>Trạm Chấm Công</h1>
+      <div class="sub">Đăng nhập để tiếp tục</div>
+      <div class="sub" id="connStatus" style="color:var(--amber);font-weight:700;">● Đang kết nối máy chủ...</div>
+    </div>
+
+    <div class="login-tabs">
+      <button data-login-role="manager" class="active">Quản lý</button>
+      <button data-login-role="employee">Nhân viên</button>
+    </div>
+
+    <div class="login-form active" id="loginManagerForm">
+      <label>Tên đăng nhập</label>
+      <input type="text" id="mgrUser" placeholder="quanly" autocomplete="username">
+      <label>Mật khẩu</label>
+      <input type="password" id="mgrPass" placeholder="••••••" autocomplete="current-password">
+      <button class="btn" id="btnMgrLogin" style="width:100%;margin-top:18px;" disabled>Đăng nhập quản lý</button>
+      <div class="login-hint">Tài khoản mặc định: <b>quanly</b> / <b>123456</b></div>
+    </div>
+
+    <div class="login-form" id="loginEmployeeForm">
+      <label>Chọn tên của bạn</label>
+      <select id="empLoginSelect"></select>
+      <label>Mã PIN (nếu được cấp)</label>
+      <input type="password" id="empPin" placeholder="••••" maxlength="6">
+      <button class="btn" id="btnEmpLogin" style="width:100%;margin-top:18px;" disabled>Đăng nhập nhân viên</button>
+      <div class="login-hint" id="empLoginHint">Nếu chưa được cấp mã PIN, chỉ cần chọn tên và đăng nhập.</div>
+    </div>
+
+    <div class="login-error" id="loginError" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="appScreen" style="display:none;">
+
+  <header class="site">
+    <div class="brand">
+      <div class="mark"></div>
+      <div>
+        <h1>Trạm Chấm Công</h1>
+        <div class="sub">Quản lý nhân viên &amp; giờ làm việc</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="user-chip">
+        <span class="u-role manager" id="userRoleBadge">Quản lý</span>
+        <span class="u-name" id="userNameLabel">—</span>
+        <button class="logout-btn" id="btnLogout" title="Đăng xuất">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+      <div class="live-clock">
+        <div class="digits mono" id="headerClock">--:--<span class="sec">--</span></div>
+        <div class="date" id="headerDate">-- -- ----</div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ============ CHẤM CÔNG ============ -->
+    <section class="view active" id="view-punch">
+      <div class="grid cols-2">
+        <div class="card punch-station">
+          <div class="digits-big mono" id="punchClock">--:--:<span class="sec">--</span></div>
+          <div class="date-big" id="punchDate">-- -- ----</div>
+
+          <div id="punchSelectWrap">
+            <label style="margin-top:26px;text-align:left;">Chọn nhân viên</label>
+            <select id="punchSelect"></select>
+          </div>
+
+          <div id="punchStatusWrap"></div>
+
+          <div class="punch-actions">
+            <button class="btn" id="btnCheckIn">Chấm công vào</button>
+            <button class="btn ghost" id="btnCheckOut">Chấm công ra</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="section-title">Phiếu chấm công hôm nay</h2>
+          <div id="todayList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ NHÂN VIÊN ============ -->
+    <section class="view" id="view-employees">
+      <div class="grid cols-2">
+        <div class="card">
+          <h2 class="section-title">Thêm nhân viên mới</h2>
+          <label>Họ và tên</label>
+          <input type="text" id="empName" placeholder="Ví dụ: Nguyễn Văn A">
+          <label>Chức vụ / Vị trí</label>
+          <input type="text" id="empRole" placeholder="Ví dụ: Nhân viên bán hàng">
+          <label>Phòng ban</label>
+          <input type="text" id="empDept" placeholder="Ví dụ: Kinh doanh">
+          <label>Mã PIN đăng nhập (tùy chọn)</label>
+          <input type="text" id="empPinField" placeholder="Để trống nếu không cần" maxlength="6">
+          <button class="btn" id="btnAddEmp" style="margin-top:16px;width:100%;">Thêm nhân viên</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <h2 class="section-title" style="margin:0;">Danh sách nhân viên (<span id="empCount">0</span>)</h2>
+          </div>
+          <div id="empList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ XẾP HẠNG ============ -->
+    <section class="view" id="view-ranking">
+      <div class="card">
+        <div class="toolbar">
+          <h2 class="section-title" style="margin:0;">Bảng xếp hạng theo tổng giờ làm</h2>
+          <div class="hint">Cập nhật theo thời gian thực từ dữ liệu chấm công</div>
+        </div>
+        <div id="rankList"></div>
+      </div>
+    </section>
+
+    <!-- ============ TRÒ CHUYỆN ============ -->
+    <section class="view" id="view-chat">
+      <div class="grid cols-2">
+        <div class="card">
+          <div class="toolbar" style="margin-bottom:6px;">
+            <h2 class="section-title" style="margin:0;">Nhóm trò chuyện</h2>
+            <button class="btn ghost small" id="btnNewGroup">+ Tạo nhóm</button>
+          </div>
+
+          <div id="newGroupForm" class="new-group-form" style="display:none;">
+            <label>Tên nhóm</label>
+            <input type="text" id="grpName" placeholder="Ví dụ: Ca sáng, Nhóm kho...">
+            <label style="display:flex;align-items:center;gap:8px;margin-top:14px;">
+              <input type="checkbox" id="grpPrivate" style="width:auto;"> Nhóm riêng tư (có mật khẩu)
+            </label>
+            <div id="grpPasswordWrap" style="display:none;">
+              <label>Mật khẩu nhóm</label>
+              <input type="text" id="grpPassword" placeholder="Đặt mật khẩu cho nhóm">
+            </div>
+            <label>Thêm thành viên</label>
+            <div class="member-check-list" id="memberCheckList"></div>
+            <div style="display:flex;gap:8px;margin-top:14px;">
+              <button class="btn" id="btnCreateGroupSubmit" style="flex:1;">Tạo nhóm</button>
+              <button class="btn ghost" id="btnCreateGroupCancel">Hủy</button>
+            </div>
+          </div>
+
+          <div class="list-subhead">Nhóm của bạn</div>
+          <div id="myGroupsList"></div>
+
+          <div id="discoverWrap">
+            <div class="list-subhead">Nhóm riêng tư có thể tham gia</div>
+            <div id="discoverGroupsList"></div>
+          </div>
+        </div>
+
+        <div class="card chat-card">
+          <div id="chatHeaderWrap"></div>
+          <div class="chat-messages" id="chatMessages"></div>
+          <div class="chat-input-row">
+            <input type="text" id="chatInput" placeholder="Nhập tin nhắn...">
+            <button class="btn" id="btnSendMsg">Gửi</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site">Dữ liệu được lưu trực tiếp trên trình duyệt của bạn (localStorage) — không cần máy chủ, phù hợp để lưu trữ trên GitHub Pages.</footer>
+
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button data-view="punch" class="active">
+        <span class="ico-wrap"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></span>
+        Chấm công
+      </button>
+      <button data-view="employees" id="navEmployeesBtn">
+        <span class="ico-wrap"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+        Nhân viên
+      </button>
+      <button data-view="chat">
+        <span class="ico-wrap"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.38 8.38 0 0 1-3.8 7.06 8.5 8.5 0 0 1-9.44 0A8.38 8.38 0 0 1 4 11.5a8.5 8.5 0 0 1 8.5-8.5A8.5 8.5 0 0 1 21 11.5Z"/><path d="M8 12h.01"/><path d="M12 12h.01"/><path d="M16 12h.01"/></svg></span>
+        Trò chuyện
+      </button>
+      <button data-view="ranking">
+        <span class="ico-wrap"><svg viewBox="0 0 24 24"><path d="M8 21h8"/><path d="M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4"/><path d="M17 6h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4"/></svg></span>
+        Xếp hạng
+      </button>
+    </div>
+  </nav>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================================================================
+     FIREBASE SETUP
+     1) Tạo project miễn phí tại https://console.firebase.google.com
+     2) Bật "Firestore Database" (chế độ Production) và "Authentication"
+        → Sign-in method → bật "Anonymous".
+     3) Vào Project settings → dán cấu hình web app của bạn vào bên dưới.
+     4) Dán Firestore Rules được cung cấp kèm theo (xem hướng dẫn đi kèm).
+     ================================================================ */
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const LS_SESSION = "cc_session"; // login state stays per-device
+
+  function load(key, fallback){
+    try{ const v = JSON.parse(localStorage.getItem(key)); return (v===null||v===undefined) ? fallback : v; }
+    catch(e){ return fallback; }
+  }
+  function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+  let employees = [];
+  let logs = [];        // {id, empId, date:"YYYY-MM-DD", checkIn: ms|null, checkOut: ms|null}
+  let groups = [];      // {id,name,isPrivate,password,createdBy,createdByName,memberIds,createdAt}
+  let messages = [];    // messages of the CURRENTLY OPEN group only
+  let session = load(LS_SESSION, null); // {role:'manager'|'employee', empId, name}
+  let admin = {user:"quanly", pass:"123456"}; // overwritten live from Firestore once connected
+  let currentGroupId = null;
+  let fsReady = false;
+  let unsubMessages = null;
+
+  const pad = n => String(n).padStart(2,"0");
+  const todayKey = () => {
+    const d = new Date();
+    return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  };
+  const dateLabel = (d) => {
+    const days=["Chủ Nhật","Thứ Hai","Thứ Ba","Thứ Tư","Thứ Năm","Thứ Sáu","Thứ Bảy"];
+    return days[d.getDay()]+", "+pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear();
+  };
+  const initials = (name) => name.trim().split(/\s+/).map(w=>w[0]).slice(-2).join("").toUpperCase();
+  const uid = () => Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+  function escapeHTML(str){
+    return String(str).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]));
+  }
+
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  function setConnStatus(text, color){
+    const el = document.getElementById("connStatus");
+    if(el){ el.textContent = text; el.style.color = color; }
+  }
+
+  auth.onAuthStateChanged(user=>{
+    if(user){
+      fsReady = true;
+      setConnStatus("● Đã kết nối", "var(--green)");
+      document.getElementById("btnMgrLogin").disabled = false;
+      document.getElementById("btnEmpLogin").disabled = false;
+      startListeners();
+    }
+  });
+  auth.signInAnonymously().catch(err=>{
+    setConnStatus("● Không kết nối được máy chủ — kiểm tra cấu hình Firebase", "var(--red)");
+    console.error("Firebase auth error:", err);
+  });
+
+  function startListeners(){
+    // admin credentials (seed default on first run)
+    const adminRef = db.collection("config").doc("admin");
+    adminRef.get().then(snap=>{
+      if(!snap.exists) adminRef.set({user:"quanly", pass:"123456"});
+    });
+    adminRef.onSnapshot(snap=>{
+      if(snap.exists) admin = snap.data();
+    });
+
+    db.collection("employees").onSnapshot(snap=>{
+      employees = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      populateLoginEmployeeSelect();
+      if(session && session.role==="employee" && !employees.some(e=>e.id===session.empId)){
+        localStorage.removeItem(LS_SESSION);
+        location.reload();
+        return;
+      }
+      if(session){
+        if(session.role==="manager") renderEmployees();
+        renderPunchSelect();
+        renderRanking();
+        renderChat();
+      }
+    }, err=>console.error("employees listener:", err));
+
+    db.collection("logs").onSnapshot(snap=>{
+      logs = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(session){ renderTodayList(); renderRanking(); renderPunchSelect(); }
+    }, err=>console.error("logs listener:", err));
+
+    db.collection("groups").onSnapshot(snap=>{
+      groups = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(session) renderChat();
+    }, err=>console.error("groups listener:", err));
+  }
+
+  function subscribeGroupMessages(groupId){
+    if(unsubMessages){ unsubMessages(); unsubMessages = null; }
+    messages = [];
+    if(!groupId) return;
+    unsubMessages = db.collection("messages").where("groupId","==",groupId).onSnapshot(snap=>{
+      messages = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      renderChatWindow();
+    }, err=>console.error("messages listener:", err));
+  }
+
+  /* ================= LOGIN SCREEN ================= */
+  const loginScreen = document.getElementById("loginScreen");
+  const appScreen = document.getElementById("appScreen");
+  const loginError = document.getElementById("loginError");
+
+  document.querySelectorAll("[data-login-role]").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll("[data-login-role]").forEach(b=>b.classList.remove("active"));
+      btn.classList.add("active");
+      const role = btn.dataset.loginRole;
+      document.getElementById("loginManagerForm").classList.toggle("active", role==="manager");
+      document.getElementById("loginEmployeeForm").classList.toggle("active", role==="employee");
+      loginError.style.display = "none";
+      if(role==="employee") populateLoginEmployeeSelect();
+    });
+  });
+
+  function populateLoginEmployeeSelect(){
+    const sel = document.getElementById("empLoginSelect");
+    if(employees.length===0){
+      sel.innerHTML = "<option value=''>— Chưa có nhân viên nào, liên hệ quản lý —</option>";
+      return;
+    }
+    sel.innerHTML = employees.map(e=>`<option value="${e.id}">${escapeHTML(e.name)}</option>`).join("");
+  }
+  populateLoginEmployeeSelect();
+
+  function showLoginError(msg){
+    loginError.textContent = msg;
+    loginError.style.display = "block";
+  }
+
+  document.getElementById("btnMgrLogin").addEventListener("click", ()=>{
+    const u = document.getElementById("mgrUser").value.trim();
+    const p = document.getElementById("mgrPass").value;
+    if(u===admin.user && p===admin.pass){
+      session = {role:"manager", empId:null, name:"Quản lý"};
+      save(LS_SESSION, session);
+      enterApp();
+    } else {
+      showLoginError("Sai tên đăng nhập hoặc mật khẩu quản lý.");
+    }
+  });
+
+  document.getElementById("btnEmpLogin").addEventListener("click", ()=>{
+    const empId = document.getElementById("empLoginSelect").value;
+    const pin = document.getElementById("empPin").value.trim();
+    if(!empId){ showLoginError("Vui lòng chọn tên của bạn."); return; }
+    const emp = employees.find(e=>e.id===empId);
+    if(!emp){ showLoginError("Không tìm thấy nhân viên."); return; }
+    if(emp.pin && emp.pin.length>0 && emp.pin !== pin){
+      showLoginError("Mã PIN không đúng.");
+      return;
+    }
+    session = {role:"employee", empId:emp.id, name:emp.name};
+    save(LS_SESSION, session);
+    enterApp();
+  });
+
+  document.getElementById("btnLogout").addEventListener("click", ()=>{
+    localStorage.removeItem(LS_SESSION);
+    location.reload();
+  });
+
+  function enterApp(){
+    loginScreen.style.display = "none";
+    appScreen.style.display = "block";
+    applyRoleUI();
+    renderAll();
+    switchView("punch");
+  }
+
+  function applyRoleUI(){
+    const badge = document.getElementById("userRoleBadge");
+    const nameLabel = document.getElementById("userNameLabel");
+    const navEmp = document.getElementById("navEmployeesBtn");
+    if(session.role==="manager"){
+      badge.textContent = "Quản lý";
+      badge.className = "u-role manager";
+      nameLabel.textContent = "Quản lý";
+      navEmp.style.display = "";
+    } else {
+      badge.textContent = "Nhân viên";
+      badge.className = "u-role employee";
+      nameLabel.textContent = session.name;
+      navEmp.style.display = "none";
+    }
+  }
+
+  /* ================= live clock ================= */
+  function tickClock(){
+    const now = new Date();
+    const h = pad(now.getHours()), m = pad(now.getMinutes()), s = pad(now.getSeconds());
+    const timeHTML = h+":"+m+"<span class='sec'>:"+s+"</span>";
+    const hc = document.getElementById("headerClock");
+    if(hc) hc.innerHTML = h+":"+m+"<span class='sec'>"+s+"</span>";
+    const hd = document.getElementById("headerDate");
+    if(hd) hd.textContent = dateLabel(now);
+    const pc = document.getElementById("punchClock");
+    if(pc) pc.innerHTML = timeHTML;
+    const pd = document.getElementById("punchDate");
+    if(pd) pd.textContent = dateLabel(now);
+  }
+  tickClock();
+  setInterval(tickClock, 1000);
+
+  /* ================= bottom nav ================= */
+  function switchView(name){
+    document.querySelectorAll(".bottom-nav-inner button").forEach(b=>b.classList.toggle("active", b.dataset.view===name));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    document.getElementById("view-"+name).classList.add("active");
+    if(name==="ranking") renderRanking();
+    if(name==="punch") renderPunchSelect();
+    if(name==="chat") renderChat();
+  }
+  document.querySelectorAll(".bottom-nav-inner button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      if(btn.dataset.view==="employees" && session.role!=="manager") return;
+      switchView(btn.dataset.view);
+    });
+  });
+
+  /* ================= employees (manager only) ================= */
+  function renderEmployees(){
+    const list = document.getElementById("empList");
+    document.getElementById("empCount").textContent = employees.length;
+    if(employees.length===0){
+      list.innerHTML = "<div class='empty'>Chưa có nhân viên nào. Hãy thêm nhân viên đầu tiên.</div>";
+      return;
+    }
+    list.innerHTML = employees.map(e=>`
+      <div class="emp-row">
+        <div class="emp-info">
+          <div class="avatar">${initials(e.name)}</div>
+          <div class="txt">
+            <div class="name">${escapeHTML(e.name)}</div>
+            <div class="role">${escapeHTML(e.role||"—")}${e.dept? " · "+escapeHTML(e.dept):""}</div>
+            <div class="pin-tag">${e.pin ? "🔒 Đã đặt mã PIN" : "🔓 Chưa đặt mã PIN"}</div>
+          </div>
+        </div>
+        <div class="emp-actions">
+          <button class="btn ghost small" data-pin="${e.id}">PIN</button>
+          <button class="btn danger" data-del="${e.id}">Xóa</button>
+        </div>
+      </div>
+    `).join("");
+    list.querySelectorAll("[data-del]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        if(confirm("Xóa nhân viên này? Lịch sử chấm công liên quan cũng sẽ bị xóa.")){
+          const id = b.dataset.del;
+          db.collection("employees").doc(id).delete().catch(err=>alert("Lỗi: "+err.message));
+          db.collection("logs").where("empId","==",id).get().then(snap=>{
+            const batch = db.batch();
+            snap.forEach(d=>batch.delete(d.ref));
+            return batch.commit();
+          }).catch(err=>console.error(err));
+        }
+      });
+    });
+    list.querySelectorAll("[data-pin]").forEach(b=>{
+      b.addEventListener("click", ()=>{
+        const id = b.dataset.pin;
+        const emp = employees.find(e=>e.id===id);
+        if(!emp) return;
+        const val = prompt("Nhập mã PIN mới cho "+emp.name+" (để trống để bỏ mã PIN):", emp.pin||"");
+        if(val===null) return;
+        db.collection("employees").doc(id).update({pin: val.trim() || null}).catch(err=>alert("Lỗi: "+err.message));
+      });
+    });
+  }
+
+  document.getElementById("btnAddEmp").addEventListener("click", ()=>{
+    const name = document.getElementById("empName").value.trim();
+    const role = document.getElementById("empRole").value.trim();
+    const dept = document.getElementById("empDept").value.trim();
+    const pin = document.getElementById("empPinField").value.trim();
+    if(!name){ alert("Vui lòng nhập họ tên nhân viên."); return; }
+    const id = uid();
+    db.collection("employees").doc(id).set({name, role, dept, pin: pin || null})
+      .catch(err=>alert("Lỗi: "+err.message));
+    document.getElementById("empName").value="";
+    document.getElementById("empRole").value="";
+    document.getElementById("empDept").value="";
+    document.getElementById("empPinField").value="";
+  });
+
+  /* ================= punch station ================= */
+  function renderPunchSelect(){
+    const wrap = document.getElementById("punchSelectWrap");
+
+    if(session.role==="employee"){
+      const emp = employees.find(e=>e.id===session.empId);
+      if(!emp){
+        wrap.innerHTML = "<div class='empty'>Tài khoản nhân viên không còn tồn tại.</div>";
+        updatePunchButtons(null);
+        return;
+      }
+      wrap.innerHTML = `<div class="self-name-tag">${escapeHTML(emp.name)}</div>`;
+      updatePunchButtons(emp.id);
+      return;
+    }
+
+    // manager view: full dropdown
+    if(!document.getElementById("punchSelect")){
+      wrap.innerHTML = `<label style="margin-top:26px;text-align:left;">Chọn nhân viên</label><select id="punchSelect"></select>`;
+    }
+    const selEl = document.getElementById("punchSelect");
+    const cur = selEl.value;
+    if(employees.length===0){
+      selEl.innerHTML = "<option value=''>— Chưa có nhân viên —</option>";
+      updatePunchButtons(null);
+      return;
+    }
+    selEl.innerHTML = employees.map(e=>`<option value="${e.id}">${escapeHTML(e.name)}</option>`).join("");
+    if(cur && employees.some(e=>e.id===cur)) selEl.value = cur;
+    selEl.onchange = e=>updatePunchButtons(e.target.value);
+    updatePunchButtons(selEl.value);
+  }
+
+  function currentPunchEmpId(){
+    if(session.role==="employee") return session.empId;
+    const sel = document.getElementById("punchSelect");
+    return sel ? sel.value : null;
+  }
+
+  function findTodayLog(empId){
+    return logs.find(l=>l.empId===empId && l.date===todayKey());
+  }
+
+  function updatePunchButtons(empId){
+    const wrap = document.getElementById("punchStatusWrap");
+    const btnIn = document.getElementById("btnCheckIn");
+    const btnOut = document.getElementById("btnCheckOut");
+    if(!empId){
+      wrap.innerHTML=""; btnIn.disabled=true; btnOut.disabled=true; return;
+    }
+    const log = findTodayLog(empId);
+    if(!log || !log.checkIn){
+      btnIn.disabled=false; btnOut.disabled=true;
+      wrap.innerHTML = "<div class='status-pill out'>Chưa chấm công vào</div>";
+    } else if(log.checkIn && !log.checkOut){
+      btnIn.disabled=true; btnOut.disabled=false;
+      wrap.innerHTML = "<div class='status-pill in'>Đang trong ca — vào lúc "+fmtTime(log.checkIn)+"</div>";
+    } else {
+      btnIn.disabled=true; btnOut.disabled=true;
+      wrap.innerHTML = "<div class='status-pill out'>Đã hoàn tất ca hôm nay</div>";
+    }
+  }
+
+  function fmtTime(ms){
+    const d = new Date(ms);
+    return pad(d.getHours())+":"+pad(d.getMinutes())+":"+pad(d.getSeconds());
+  }
+
+  document.getElementById("btnCheckIn").addEventListener("click", ()=>{
+    const empId = currentPunchEmpId();
+    if(!empId) return;
+    const log = findTodayLog(empId);
+    if(!log){
+      const id = uid();
+      db.collection("logs").doc(id).set({empId, date:todayKey(), checkIn:Date.now(), checkOut:null})
+        .catch(err=>alert("Lỗi: "+err.message));
+    } else if(!log.checkIn){
+      db.collection("logs").doc(log.id).update({checkIn:Date.now()}).catch(err=>alert("Lỗi: "+err.message));
+    }
+  });
+
+  document.getElementById("btnCheckOut").addEventListener("click", ()=>{
+    const empId = currentPunchEmpId();
+    if(!empId) return;
+    const log = findTodayLog(empId);
+    if(log && log.checkIn && !log.checkOut){
+      db.collection("logs").doc(log.id).update({checkOut:Date.now()}).catch(err=>alert("Lỗi: "+err.message));
+    }
+  });
+
+  function renderTodayList(){
+    const wrap = document.getElementById("todayList");
+    let todays = logs.filter(l=>l.date===todayKey());
+    if(session.role==="employee"){
+      todays = todays.filter(l=>l.empId===session.empId);
+    }
+    todays = todays.sort((a,b)=>b.checkIn - a.checkIn);
+    if(todays.length===0){
+      wrap.innerHTML = "<div class='empty'>Chưa có phiếu chấm công nào hôm nay.</div>";
+      return;
+    }
+    wrap.innerHTML = todays.map(l=>{
+      const emp = employees.find(e=>e.id===l.empId);
+      const name = emp? emp.name : "(Đã xóa)";
+      const hoursStr = l.checkOut ? fmtDuration(l.checkOut - l.checkIn) : "— đang làm —";
+      return `
+        <div class="ticket">
+          <div>
+            <div class="t-name">${escapeHTML(name)}</div>
+            <div class="t-date">${todayKey()}</div>
+          </div>
+          <div class="t-times">
+            <div><span class="lbl">VÀO</span>${fmtTime(l.checkIn)}</div>
+            <div><span class="lbl">RA</span>${l.checkOut? fmtTime(l.checkOut) : "--:--:--"}</div>
+          </div>
+          <div class="t-hours">${hoursStr}</div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function fmtDuration(ms){
+    const totalSec = Math.floor(ms/1000);
+    const h = Math.floor(totalSec/3600);
+    const m = Math.floor((totalSec%3600)/60);
+    return h+"h"+pad(m)+"m";
+  }
+
+  /* ================= ranking ================= */
+  function renderRanking(){
+    const wrap = document.getElementById("rankList");
+    if(employees.length===0){
+      wrap.innerHTML = "<div class='empty'>Chưa có nhân viên nào để xếp hạng.</div>";
+      return;
+    }
+    const totals = employees.map(e=>{
+      const empLogs = logs.filter(l=>l.empId===e.id && l.checkIn && l.checkOut);
+      const totalMs = empLogs.reduce((sum,l)=>sum + (l.checkOut - l.checkIn), 0);
+      const shifts = empLogs.length;
+      return {emp:e, totalMs, shifts};
+    }).sort((a,b)=>b.totalMs - a.totalMs);
+
+    const maxMs = totals[0]?.totalMs || 1;
+
+    wrap.innerHTML = totals.map((t,i)=>{
+      const rankCls = i===0?"top1":i===1?"top2":i===2?"top3":"";
+      const medalColors = ["#f5a524","#a9adc0","#c98a54"];
+      const medal = i<3
+        ? `<span style="display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:${medalColors[i]};color:#fff;font-family:'Plus Jakarta Sans',sans-serif;font-size:12px;font-weight:800;">${i+1}</span>`
+        : (i+1);
+      const pct = maxMs>0 ? Math.max(4, Math.round((t.totalMs/maxMs)*100)) : 0;
+      return `
+        <div class="rank-row ${rankCls}">
+          <div class="rank-num">${medal}</div>
+          <div class="rank-name">${escapeHTML(t.emp.name)}<span class="role">${escapeHTML(t.emp.role||"—")} · ${t.shifts} ca</span></div>
+          <div class="rank-bar-wrap"><div class="rank-bar" style="width:${pct}%"></div></div>
+          <div class="rank-hours">${fmtDuration(t.totalMs)}<span class="u">tổng</span></div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  /* ================= chat ================= */
+  function currentUserId(){ return session.role==="manager" ? "manager" : session.empId; }
+  function currentUserName(){ return session.role==="manager" ? "Quản lý" : session.name; }
+
+  function accessibleGroups(){
+    if(session.role==="manager") return groups.slice().sort((a,b)=>b.createdAt-a.createdAt);
+    const myId = session.empId;
+    return groups.filter(g=>g.memberIds.includes(myId) || g.createdBy===myId).sort((a,b)=>b.createdAt-a.createdAt);
+  }
+  function discoverableGroups(){
+    if(session.role!=="employee") return [];
+    const myId = session.empId;
+    return groups.filter(g=>g.isPrivate && !g.memberIds.includes(myId) && g.createdBy!==myId);
+  }
+
+  function renderMemberChecklist(){
+    const wrap = document.getElementById("memberCheckList");
+    const myId = session.role==="employee" ? session.empId : null;
+    const others = employees.filter(e=>e.id!==myId);
+    if(others.length===0){
+      wrap.innerHTML = "<div style='font-size:12px;color:var(--muted);padding:4px 2px;'>Chưa có nhân viên khác để thêm.</div>";
+      return;
+    }
+    wrap.innerHTML = others.map(e=>`
+      <label class="member-check-item">
+        <input type="checkbox" value="${e.id}" class="member-chk">
+        ${escapeHTML(e.name)}
+      </label>
+    `).join("");
+  }
+
+  document.getElementById("grpPrivate").addEventListener("change", e=>{
+    document.getElementById("grpPasswordWrap").style.display = e.target.checked ? "block" : "none";
+  });
+
+  document.getElementById("btnNewGroup").addEventListener("click", ()=>{
+    const form = document.getElementById("newGroupForm");
+    const show = form.style.display === "none";
+    form.style.display = show ? "block" : "none";
+    if(show) renderMemberChecklist();
+  });
+  document.getElementById("btnCreateGroupCancel").addEventListener("click", ()=>{
+    document.getElementById("newGroupForm").style.display = "none";
+  });
+
+  document.getElementById("btnCreateGroupSubmit").addEventListener("click", ()=>{
+    const name = document.getElementById("grpName").value.trim();
+    const isPrivate = document.getElementById("grpPrivate").checked;
+    const password = document.getElementById("grpPassword").value.trim();
+    if(!name){ alert("Vui lòng nhập tên nhóm."); return; }
+    if(isPrivate && !password){ alert("Vui lòng đặt mật khẩu cho nhóm riêng tư."); return; }
+    const checked = Array.from(document.querySelectorAll(".member-chk:checked")).map(c=>c.value);
+    let memberIds = checked;
+    if(session.role==="employee"){ memberIds = Array.from(new Set([session.empId, ...checked])); }
+    const id = uid();
+    const group = {
+      name, isPrivate, password: isPrivate ? password : null,
+      createdBy: currentUserId(), createdByName: currentUserName(),
+      memberIds, createdAt: Date.now()
+    };
+    db.collection("groups").doc(id).set(group).catch(err=>alert("Lỗi: "+err.message));
+    document.getElementById("grpName").value="";
+    document.getElementById("grpPrivate").checked=false;
+    document.getElementById("grpPassword").value="";
+    document.getElementById("grpPasswordWrap").style.display="none";
+    document.getElementById("newGroupForm").style.display="none";
+    currentGroupId = id;
+    subscribeGroupMessages(id);
+  });
+
+  function renderGroupLists(){
+    const mine = accessibleGroups();
+    const myWrap = document.getElementById("myGroupsList");
+    if(mine.length===0){
+      myWrap.innerHTML = "<div class='empty' style='padding:18px 10px;'>Chưa có nhóm nào. Hãy tạo nhóm mới.</div>";
+    } else {
+      myWrap.innerHTML = mine.map(g=>{
+        const isManagerGuest = session.role==="manager" && g.createdBy!=="manager";
+        return `
+        <div class="group-item ${g.id===currentGroupId?'active':''}" data-group="${g.id}">
+          <div class="g-avatar">${initials(g.name)}</div>
+          <div class="g-info">
+            <div class="g-name">${g.isPrivate?'<svg class="lock-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>':''}${escapeHTML(g.name)}</div>
+            <div class="g-meta">${g.memberIds.length} thành viên${isManagerGuest? ' · Quyền quản lý':''}</div>
+          </div>
+        </div>`;
+      }).join("");
+    }
+    myWrap.querySelectorAll("[data-group]").forEach(el=>{
+      el.addEventListener("click", ()=>{
+        currentGroupId = el.dataset.group;
+        subscribeGroupMessages(currentGroupId);
+        renderGroupLists();
+        renderChatWindow();
+      });
+    });
+
+    const discWrap = document.getElementById("discoverGroupsList");
+    const discoverWrapOuter = document.getElementById("discoverWrap");
+    const disc = discoverableGroups();
+    if(session.role!=="employee" || disc.length===0){
+      discoverWrapOuter.style.display = "none";
+    } else {
+      discoverWrapOuter.style.display = "block";
+      discWrap.innerHTML = disc.map(g=>`
+        <div class="discover-item">
+          <div>
+            <div class="g-name">🔒 ${escapeHTML(g.name)}</div>
+            <div class="g-meta">Tạo bởi ${escapeHTML(g.createdByName)}</div>
+          </div>
+          <button class="btn ghost small" data-join="${g.id}">Tham gia</button>
+        </div>
+      `).join("");
+      discWrap.querySelectorAll("[data-join]").forEach(b=>{
+        b.addEventListener("click", ()=>{
+          const gid = b.dataset.join;
+          const g = groups.find(x=>x.id===gid);
+          if(!g) return;
+          const pass = prompt('Nhập mật khẩu để tham gia nhóm "'+g.name+'":');
+          if(pass===null) return;
+          if(pass !== g.password){ alert("Sai mật khẩu."); return; }
+          const newMembers = Array.from(new Set([...g.memberIds, session.empId]));
+          db.collection("groups").doc(g.id).update({memberIds:newMembers}).then(()=>{
+            currentGroupId = g.id;
+            subscribeGroupMessages(g.id);
+          }).catch(err=>alert("Lỗi: "+err.message));
+        });
+      });
+    }
+  }
+
+  function fmtMsgTime(ms){
+    const d = new Date(ms);
+    return pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+
+  function renderChatWindow(){
+    const headerWrap = document.getElementById("chatHeaderWrap");
+    const msgWrap = document.getElementById("chatMessages");
+    const input = document.getElementById("chatInput");
+    const sendBtn = document.getElementById("btnSendMsg");
+
+    const group = groups.find(g=>g.id===currentGroupId);
+    if(!group){
+      headerWrap.innerHTML = "";
+      msgWrap.innerHTML = "<div class='chat-empty'>Chọn một nhóm bên trái hoặc tạo nhóm mới để bắt đầu trò chuyện.</div>";
+      input.disabled = true; sendBtn.disabled = true;
+      return;
+    }
+    input.disabled = false; sendBtn.disabled = false;
+
+    const isManagerGuest = session.role==="manager" && group.createdBy!=="manager";
+    headerWrap.innerHTML = `
+      <div class="chat-header">
+        <div class="ch-name">${group.isPrivate?'🔒 ':''}${escapeHTML(group.name)}</div>
+        <div class="ch-meta">${group.memberIds.length} thành viên · Tạo bởi ${escapeHTML(group.createdByName)}</div>
+      </div>
+      ${isManagerGuest ? `<div class="admin-banner">🔑 Bạn đang xem nhóm riêng tư này với quyền truy cập của quản lý.</div>` : ""}
+    `;
+
+    const msgs = messages.filter(m=>m.groupId===group.id).sort((a,b)=>a.ts-b.ts);
+    const myId = currentUserId();
+    if(msgs.length===0){
+      msgWrap.innerHTML = "<div class='chat-empty'>Chưa có tin nhắn nào. Hãy gửi lời chào!</div>";
+    } else {
+      msgWrap.innerHTML = msgs.map(m=>{
+        const mine = m.senderId === myId;
+        return `
+          <div class="msg-row ${mine?'mine':'theirs'}">
+            ${!mine? `<div class="msg-sender">${escapeHTML(m.senderName)}</div>` : ""}
+            <div class="msg-bubble">${escapeHTML(m.text)}</div>
+            <div class="msg-time">${fmtMsgTime(m.ts)}</div>
+          </div>
+        `;
+      }).join("");
+    }
+    msgWrap.scrollTop = msgWrap.scrollHeight;
+  }
+
+  function sendMessage(){
+    const input = document.getElementById("chatInput");
+    const text = input.value.trim();
+    if(!text || !currentGroupId) return;
+    const id = uid();
+    db.collection("messages").doc(id).set({
+      groupId:currentGroupId, senderId:currentUserId(), senderName:currentUserName(), text, ts:Date.now()
+    }).catch(err=>alert("Lỗi: "+err.message));
+    input.value = "";
+  }
+  document.getElementById("btnSendMsg").addEventListener("click", sendMessage);
+  document.getElementById("chatInput").addEventListener("keydown", e=>{
+    if(e.key==="Enter"){ e.preventDefault(); sendMessage(); }
+  });
+
+  function renderChat(){
+    renderMemberChecklist();
+    renderGroupLists();
+    if(!currentGroupId){
+      const list = accessibleGroups();
+      if(list.length>0){ currentGroupId = list[0].id; subscribeGroupMessages(currentGroupId); }
+    }
+    renderChatWindow();
+  }
+
+  function renderAll(){
+    if(session.role==="manager") renderEmployees();
+    renderPunchSelect();
+    renderTodayList();
+    renderRanking();
+  }
+
+  setInterval(()=>{ if(session) renderTodayList(); }, 1000);
+
+  /* ================= boot ================= */
+  if(session){
+    enterApp();
+  }
+})();
+</script>
+
+</body>
+</html>

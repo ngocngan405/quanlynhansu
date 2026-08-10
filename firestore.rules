@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Chỉ cho phép đọc/ghi khi đã đăng nhập ẩn danh (Anonymous Auth) qua app.
+    // Đây là mức bảo vệ tối thiểu — chặn truy cập trực tiếp API mà không qua app,
+    // nhưng KHÔNG phân quyền theo vai trò quản lý/nhân viên (app tự xử lý ở phía client).
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
