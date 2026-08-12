@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6d5bf6">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>TRẠM CHẤM CÔNG — Quản lý nhân viên</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
@@ -92,6 +96,15 @@
     margin-top:14px;background:#fdeceb;color:var(--red);border:1px solid #fbd7d5;
     padding:10px 13px;border-radius:11px;font-size:12.5px;font-weight:600;text-align:center;
   }
+  .pw-wrap{position:relative;}
+  .pw-wrap input{padding-right:42px;}
+  .pw-toggle{
+    position:absolute;right:6px;top:50%;transform:translateY(-50%);
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    padding:6px;display:flex;align-items:center;justify-content:center;border-radius:8px;
+  }
+  .pw-toggle:hover{color:var(--violet);background:var(--surface-2);}
+  .pw-toggle svg{width:18px;height:18px;}
 
   /* ===== App header ===== */
   header.site{
@@ -330,6 +343,12 @@
 
   .discover-item{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 8px;border-radius:12px;}
   .discover-item .g-name{font-size:13px;}
+  .group-del-btn{
+    flex-shrink:0;width:26px;height:26px;border-radius:50%;border:none;cursor:pointer;
+    background:var(--surface-2);color:var(--muted);font-size:13px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:.15s;
+  }
+  .group-del-btn:hover{background:#fdeceb;color:var(--red);}
 
   .chat-card{padding:0 !important;display:flex;flex-direction:column;height:540px;overflow:hidden;}
   .chat-header{padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;}
@@ -404,16 +423,26 @@
       <label>Tên đăng nhập</label>
       <input type="text" id="mgrUser" placeholder="quanly" autocomplete="username">
       <label>Mật khẩu</label>
-      <input type="password" id="mgrPass" placeholder="••••••" autocomplete="current-password">
+      <div class="pw-wrap">
+        <input type="password" id="mgrPass" placeholder="••••••" autocomplete="current-password">
+        <button type="button" class="pw-toggle" data-target="mgrPass" aria-label="Hiện/ẩn mật khẩu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
       <button class="btn" id="btnMgrLogin" style="width:100%;margin-top:18px;" disabled>Đăng nhập quản lý</button>
-      <div class="login-hint">Tài khoản mặc định: <b>admin</b> / <b>mk dòng 409</b></div>
+      <div class="login-hint">Tài khoản mặc định: <b>quanly</b> / <b>123456</b></div>
     </div>
 
     <div class="login-form" id="loginEmployeeForm">
       <label>Chọn tên của bạn</label>
       <select id="empLoginSelect"></select>
       <label>Mã PIN (nếu được cấp)</label>
-      <input type="password" id="empPin" placeholder="••••" maxlength="6">
+      <div class="pw-wrap">
+        <input type="password" id="empPin" placeholder="••••" maxlength="6">
+        <button type="button" class="pw-toggle" data-target="empPin" aria-label="Hiện/ẩn mã PIN">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
       <button class="btn" id="btnEmpLogin" style="width:100%;margin-top:18px;" disabled>Đăng nhập nhân viên</button>
       <div class="login-hint" id="empLoginHint">Nếu chưa được cấp mã PIN, chỉ cần chọn tên và đăng nhập.</div>
     </div>
@@ -510,6 +539,11 @@
           <div class="hint">Cập nhật theo thời gian thực từ dữ liệu chấm công</div>
         </div>
         <div id="rankList"></div>
+        <div id="exportWrap" style="margin-top:16px;display:none;">
+          <button class="btn ghost" id="btnExportCSV" style="width:100%;">
+            📊 Xuất bảng tính (CSV — mở bằng Google Sheets)
+          </button>
+        </div>
       </div>
     </section>
 
@@ -606,7 +640,7 @@
     storageBucket: "tram-cham-cong.firebasestorage.app",
     messagingSenderId: "188292752112",
     appId: "1:188292752112:web:1327709474329941bd5835"
-};
+  };
 
   const LS_SESSION = "cc_session"; // login state stays per-device
 
@@ -775,6 +809,15 @@
     location.reload();
   });
 
+  document.querySelectorAll(".pw-toggle").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      const target = document.getElementById(btn.dataset.target);
+      const showing = target.type === "text";
+      target.type = showing ? "password" : "text";
+      btn.style.color = showing ? "" : "var(--violet)";
+    });
+  });
+
   function enterApp(){
     loginScreen.style.display = "none";
     appScreen.style.display = "block";
@@ -787,16 +830,19 @@
     const badge = document.getElementById("userRoleBadge");
     const nameLabel = document.getElementById("userNameLabel");
     const navEmp = document.getElementById("navEmployeesBtn");
+    const exportWrap = document.getElementById("exportWrap");
     if(session.role==="manager"){
       badge.textContent = "Quản lý";
       badge.className = "u-role manager";
       nameLabel.textContent = "Quản lý";
       navEmp.style.display = "";
+      exportWrap.style.display = "block";
     } else {
       badge.textContent = "Nhân viên";
       badge.className = "u-role employee";
       nameLabel.textContent = session.name;
       navEmp.style.display = "none";
+      exportWrap.style.display = "none";
     }
   }
 
@@ -1012,10 +1058,47 @@
             <div><span class="lbl">VÀO</span>${fmtTime(l.checkIn)}</div>
             <div><span class="lbl">RA</span>${l.checkOut? fmtTime(l.checkOut) : "--:--:--"}</div>
           </div>
-          <div class="t-hours">${hoursStr}</div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+            <div class="t-hours">${hoursStr}</div>
+            ${session.role==="manager" ? `<button class="btn ghost small" data-editlog="${l.id}">Sửa giờ</button>` : ""}
+          </div>
         </div>
       `;
     }).join("");
+    wrap.querySelectorAll("[data-editlog]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        const id = btn.dataset.editlog;
+        const log = logs.find(l=>l.id===id);
+        if(!log) return;
+        const inStr = prompt("Giờ vào (định dạng HH:MM, ví dụ 08:30):", fmtTimeForInput(log.checkIn));
+        if(inStr===null) return;
+        const inTrim = inStr.trim();
+        const inMs = inTrim ? parseTimeOnDate(log.date, inTrim) : null;
+        if(inTrim && inMs===null){ alert("Định dạng giờ vào không hợp lệ. Dùng HH:MM, ví dụ 08:30."); return; }
+        const outStr = prompt("Giờ ra (HH:MM, để trống nếu chưa ra ca):", fmtTimeForInput(log.checkOut));
+        if(outStr===null) return;
+        const outTrim = outStr.trim();
+        const outMs = outTrim ? parseTimeOnDate(log.date, outTrim) : null;
+        if(outTrim && outMs===null){ alert("Định dạng giờ ra không hợp lệ. Dùng HH:MM, ví dụ 17:00."); return; }
+        db.collection("logs").doc(id).update({checkIn: inMs, checkOut: outMs}).catch(err=>alert("Lỗi: "+err.message));
+      });
+    });
+  }
+
+  function fmtTimeForInput(ms){
+    if(!ms) return "";
+    const d = new Date(ms);
+    return pad(d.getHours())+":"+pad(d.getMinutes());
+  }
+
+  function parseTimeOnDate(dateStr, hhmm){
+    const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return null;
+    const h = parseInt(m[1],10), mi = parseInt(m[2],10);
+    if(h<0||h>23||mi<0||mi>59) return null;
+    const parts = dateStr.split("-").map(Number);
+    const dt = new Date(parts[0], parts[1]-1, parts[2], h, mi, 0, 0);
+    return dt.getTime();
   }
 
   function fmtDuration(ms){
@@ -1144,6 +1227,7 @@
             <div class="g-name">${g.isPrivate?'<svg class="lock-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>':''}${escapeHTML(g.name)}</div>
             <div class="g-meta">${g.memberIds.length} thành viên${isManagerGuest? ' · Quyền quản lý':''}</div>
           </div>
+          ${session.role==="manager" ? `<button class="group-del-btn" data-delgroup="${g.id}" title="Xóa nhóm">✕</button>` : ""}
         </div>`;
       }).join("");
     }
@@ -1153,6 +1237,26 @@
         subscribeGroupMessages(currentGroupId);
         renderGroupLists();
         renderChatWindow();
+      });
+    });
+    myWrap.querySelectorAll("[data-delgroup]").forEach(btn=>{
+      btn.addEventListener("click", (ev)=>{
+        ev.stopPropagation();
+        const gid = btn.dataset.delgroup;
+        const g = groups.find(x=>x.id===gid);
+        if(!g) return;
+        if(!confirm('Xóa nhóm "'+g.name+'"? Toàn bộ tin nhắn trong nhóm sẽ bị xóa vĩnh viễn.')) return;
+        db.collection("groups").doc(gid).delete().catch(err=>alert("Lỗi: "+err.message));
+        db.collection("messages").where("groupId","==",gid).get().then(snap=>{
+          const batch = db.batch();
+          snap.forEach(d=>batch.delete(d.ref));
+          return batch.commit();
+        }).catch(err=>console.error(err));
+        if(currentGroupId===gid){
+          currentGroupId = null;
+          if(unsubMessages){ unsubMessages(); unsubMessages = null; }
+          messages = [];
+        }
       });
     });
 
@@ -1244,7 +1348,7 @@
     if(!text || !currentGroupId) return;
     const id = uid();
     db.collection("messages").doc(id).set({
-      groupId:currentGroupId, senderId:currentUserId(), senderName:currentUserName(), text, ts:Date.now()
+      groupId:currentGroupId, senderId:currentUserId(), senderName:currentUserName(), type:"text", text, ts:Date.now()
     }).catch(err=>alert("Lỗi: "+err.message));
     input.value = "";
   }
@@ -1263,6 +1367,30 @@
     renderChatWindow();
   }
 
+  /* ================= export ================= */
+  function exportAttendanceCSV(){
+    const rows = [["Nhân viên","Chức vụ","Phòng ban","Ngày","Giờ vào","Giờ ra","Tổng giờ"]];
+    logs.slice().sort((a,b)=> (a.date||"").localeCompare(b.date||"") || (a.checkIn||0)-(b.checkIn||0)).forEach(l=>{
+      const emp = employees.find(e=>e.id===l.empId);
+      const name = emp ? emp.name : "(Đã xóa)";
+      const role = emp ? (emp.role||"") : "";
+      const dept = emp ? (emp.dept||"") : "";
+      const hoursStr = l.checkOut ? fmtDuration(l.checkOut - l.checkIn) : "";
+      rows.push([name, role, dept, l.date||"", l.checkIn?fmtTime(l.checkIn):"", l.checkOut?fmtTime(l.checkOut):"", hoursStr]);
+    });
+    const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+    const blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "cham_cong_"+todayKey()+".csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 3000);
+  }
+  document.getElementById("btnExportCSV").addEventListener("click", exportAttendanceCSV);
+
   function renderAll(){
     if(session.role==="manager") renderEmployees();
     renderPunchSelect();
@@ -1277,6 +1405,14 @@
     enterApp();
   }
 })();
+</script>
+
+<script>
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("sw.js").catch(err => console.error("SW registration failed:", err));
+    });
+  }
 </script>
 
 </body>
